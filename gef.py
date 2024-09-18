@@ -52404,15 +52404,18 @@ class Kernel:
                 # 0   #DE: Divide-by-zero 0x00000000ffffffffbd008e0000100870 0xe 0x0 0x0 0x1 0x0010:0xffffffffbd000870 <NO_SYMBOL>
                 res = gdb.execute("idtinfo --verbose", to_string=True)
                 r = re.search(r"Divide-by-zero.+\S+:(\S+)\s+<", res)
-                div0_handler = int(r.group(1), 16)
+                if r:
+                    div0_handler = int(r.group(1), 16)
+
             elif is_vmware():
                 res = gdb.execute("monitor r idtr", to_string=True)
                 r = re.search(r"idtr base=(\S+) limit=(\S+)", res)
-                base = int(r.group(1), 16)
-                limit = int(r.group(2), 16)
-                idtinfo = slice_unpack(read_memory(base, limit + 1), current_arch.ptrsize * 2)
-                idt0 = IdtInfoCommand.idt_unpack(idtinfo[0])
-                div0_handler = idt0.offset
+                if r:
+                    base = int(r.group(1), 16)
+                    limit = int(r.group(2), 16)
+                    idtinfo = slice_unpack(read_memory(base, limit + 1), current_arch.ptrsize * 2)
+                    idt0 = IdtInfoCommand.idt_unpack(idtinfo[0])
+                    div0_handler = idt0.offset
 
             if div0_handler and is_valid_addr(div0_handler):
                 for i, (vaddr, size, _perm) in enumerate(dic["maps"]):
